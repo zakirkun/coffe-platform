@@ -38,6 +38,7 @@ export function ProjectSettingsDialog({ project }: { project: Project }) {
   const [mergeStrategy, setMergeStrategy] = useState<MergeStrategy>('merge');
   const [pushOnApprove, setPushOnApprove] = useState(false);
   const [remote, setRemote] = useState('');
+  const [requirePassingTests, setRequirePassingTests] = useState(false);
 
   const onOpenChange = (next: boolean) => {
     if (next) {
@@ -48,6 +49,7 @@ export function ProjectSettingsDialog({ project }: { project: Project }) {
       setMergeStrategy(settings.mergeStrategy ?? 'merge');
       setPushOnApprove(settings.pushOnApprove ?? false);
       setRemote(settings.remote ?? '');
+      setRequirePassingTests(settings.requirePassingTests ?? false);
     }
     setOpen(next);
   };
@@ -63,6 +65,7 @@ export function ProjectSettingsDialog({ project }: { project: Project }) {
           mergeStrategy,
           pushOnApprove,
           remote: remote.trim() || null,
+          requirePassingTests,
         },
       },
       {
@@ -99,6 +102,10 @@ export function ProjectSettingsDialog({ project }: { project: Project }) {
             />
             <p className="text-xs text-muted-foreground">Runs in the worktree after every successful run; results gate the review.</p>
           </div>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={requirePassingTests} onChange={(event) => setRequirePassingTests(event.target.checked)} />
+            Block approval until the latest test command and tester report pass
+          </label>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="settings-default-cli">Default CLI id</Label>

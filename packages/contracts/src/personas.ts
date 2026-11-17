@@ -15,6 +15,7 @@ export type PersonaRole = z.infer<typeof PersonaRole>;
 
 export const PERMISSION_MODES = ['read_only', 'workspace_write', 'full_auto'] as const;
 export const PermissionMode = z.enum(PERMISSION_MODES);
+export type PermissionMode = z.infer<typeof PermissionMode>;
 
 /** Persona permission limits (architecture §10.5); mapped to each CLI's native flags. */
 export const PermissionPolicy = z.object({

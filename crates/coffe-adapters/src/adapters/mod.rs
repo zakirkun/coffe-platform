@@ -5,18 +5,49 @@ use std::sync::Arc;
 
 use crate::{AdapterError, AgentEvent, RunDriver, RunMode, RunSpec, SessionState, SharedAdapter};
 
+pub(crate) mod acp_driver;
+pub mod antigravity;
 pub mod claude_code;
+pub mod codex;
 pub mod fake;
+pub mod gemini;
+pub mod grok;
+pub mod kiro;
+pub mod muse;
+pub mod opencode;
+pub mod pi;
+pub(crate) mod support;
+#[cfg(test)]
+pub(crate) mod tests_support;
 
+pub use antigravity::AntigravityAdapter;
 pub use claude_code::ClaudeCodeAdapter;
+pub use codex::CodexAdapter;
 pub use fake::FakeAdapter;
+pub use gemini::GeminiAdapter;
+pub use grok::GrokAdapter;
+pub use kiro::KiroAdapter;
+pub use muse::MuseAdapter;
+pub use opencode::OpenCodeAdapter;
+pub use pi::PiAdapter;
 
 /// `cli_id` of the fake CLI fixture (tests and demos only).
 pub const FAKE_ID: &str = "fake";
 
 /// Every built-in adapter, in display order.
 pub fn all() -> Vec<SharedAdapter> {
-    vec![Arc::new(ClaudeCodeAdapter), Arc::new(FakeAdapter)]
+    vec![
+        Arc::new(ClaudeCodeAdapter),
+        Arc::new(CodexAdapter),
+        Arc::new(GeminiAdapter),
+        Arc::new(OpenCodeAdapter),
+        Arc::new(AntigravityAdapter),
+        Arc::new(GrokAdapter),
+        Arc::new(MuseAdapter),
+        Arc::new(PiAdapter),
+        Arc::new(KiroAdapter),
+        Arc::new(FakeAdapter),
+    ]
 }
 
 /// File name (inside `<worktree>/.coffe/context/`) of the combined context that adapters hand to

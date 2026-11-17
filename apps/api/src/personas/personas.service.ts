@@ -1,8 +1,11 @@
-import type {
-  CreatePersonaRequest,
-  PermissionPolicy,
-  Persona,
-  UpdatePersonaRequest,
+import {
+  type CreatePersonaRequest,
+  KNOWN_CLI_IDS,
+  PERSONA_ROLES,
+  type PermissionPolicy,
+  type Persona,
+  type UpdatePersonaRequest,
+  unenforceableLimits,
 } from '@coffe/contracts';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, asc, eq, isNull, or } from 'drizzle-orm';
@@ -10,7 +13,6 @@ import { ApiException } from '../common/api-error.js';
 import type { Database } from '../db/client.js';
 import { DB } from '../db/db.module.js';
 import { type PermissionPolicyJson, personas, projects } from '../db/schema/index.js';
-import { KNOWN_CLI_IDS, unenforceableLimits } from './cli-limits.js';
 
 export type PersonaRow = typeof personas.$inferSelect;
 
@@ -39,6 +41,7 @@ export function toPolicy(policy: PermissionPolicyJson): PermissionPolicy {
 }
 
 export function toPersona(row: PersonaRow): Persona {
+  const permissions = toPolicy(row.permissions);
   return {
     id: row.id,
     workspaceId: row.workspaceId,
@@ -50,10 +53,10 @@ export function toPersona(row: PersonaRow): Persona {
     model: row.model,
     mode: row.mode,
     driver: row.driver,
-    permissions: toPolicy(row.permissions),
+    permissions,
     color: row.color,
     enabled: row.enabled,
-    unenforceable: unenforceableLimits(row.cliId, row.permissions),
+    unenforceable: unenforceableLimits(row.cliId, permissions),
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -76,7 +79,10 @@ export class PersonasService {
         ),
       )
       .orderBy(asc(personas.createdAt), asc(personas.name));
-    return rows.map(toPersona);
+    // Workflow order (planner → implementer → tester → reviewer …), then oldest first.
+    return rows
+      .toSorted((a, b) => PERSONA_ROLES.indexOf(a.role) - PERSONA_ROLES.indexOf(b.role))
+      .map(toPersona);
   }
 
   /** An active persona of the workspace; 404 for archived or foreign ones. */
@@ -84,7 +90,13 @@ export class PersonasService {
     const [row] = await this.db
       .select()
       .from(personas)
-      .where(and(eq(personas.id, personaId), eq(personas.workspaceId, workspaceId), isNull(personas.archivedAt)))
+      .where(
+        and(
+          eq(personas.id, personaId),
+          eq(personas.workspaceId, workspaceId),
+          isNull(personas.archivedAt),
+        ),
+      )
       .limit(1);
     if (!row) throw ApiException.notFound('Persona');
     return row;
@@ -115,7 +127,11 @@ export class PersonasService {
     return toPersona(row);
   }
 
-  async update(workspaceId: string, personaId: string, body: UpdatePersonaRequest): Promise<Persona> {
+  async update(
+    workspaceId: string,
+    personaId: string,
+    body: UpdatePersonaRequest,
+  ): Promise<Persona> {
     await this.getRow(workspaceId, personaId);
     if (body.cliId !== undefined) this.assertKnownCli(body.cliId);
     const [row] = await this.db
@@ -142,12 +158,18 @@ export class PersonasService {
   /** Archived, not deleted: past runs keep pointing at the persona that made them. */
   async archive(workspaceId: string, personaId: string): Promise<void> {
     await this.getRow(workspaceId, personaId);
-    await this.db.update(personas).set({ archivedAt: new Date(), enabled: false }).where(eq(personas.id, personaId));
+    await this.db
+      .update(personas)
+      .set({ archivedAt: new Date(), enabled: false })
+      .where(eq(personas.id, personaId));
   }
 
   private assertKnownCli(cliId: string): void {
     if (!KNOWN_CLI_IDS.includes(cliId)) {
-      throw ApiException.badRequest('unknown_cli', `Unknown CLI ${cliId}; expected one of ${KNOWN_CLI_IDS.join(', ')}`);
+      throw ApiException.badRequest(
+        'unknown_cli',
+        `Unknown CLI ${cliId}; expected one of ${KNOWN_CLI_IDS.join(', ')}`,
+      );
     }
   }
 

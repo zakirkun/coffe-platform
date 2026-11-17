@@ -5,7 +5,12 @@ import { type PermissionPolicyJson, personas, workflows } from '../db/schema/ind
 /** CLI of the seeded personas when the project names none. */
 export const DEFAULT_PERSONA_CLI = 'claude-code';
 
-const READ_ONLY: PermissionPolicyJson = { mode: 'read_only', allow_tools: [], deny_tools: [], network: true };
+const READ_ONLY: PermissionPolicyJson = {
+  mode: 'read_only',
+  allow_tools: [],
+  deny_tools: [],
+  network: true,
+};
 const WORKSPACE_WRITE: PermissionPolicyJson = {
   mode: 'workspace_write',
   allow_tools: [],
@@ -95,9 +100,30 @@ export async function seedWorkspaceDefaults(
     name: 'Implement → Test → Review',
     isDefault: true,
     steps: [
-      { key: 'implement', name: 'Implement', persona_ids: [idOf('implementer')], parallel: false, on_fail: 'stop', max_loops: 0 },
-      { key: 'test', name: 'Test', persona_ids: [idOf('tester')], parallel: false, on_fail: 'goto:implement', max_loops: 2 },
-      { key: 'review', name: 'Review', persona_ids: [idOf('reviewer')], parallel: false, on_fail: 'goto:implement', max_loops: 2 },
+      {
+        key: 'implement',
+        name: 'Implement',
+        persona_ids: [idOf('implementer')],
+        parallel: false,
+        on_fail: 'stop',
+        max_loops: 0,
+      },
+      {
+        key: 'test',
+        name: 'Test',
+        persona_ids: [idOf('tester')],
+        parallel: false,
+        on_fail: 'goto:implement',
+        max_loops: 2,
+      },
+      {
+        key: 'review',
+        name: 'Review',
+        persona_ids: [idOf('reviewer')],
+        parallel: false,
+        on_fail: 'goto:implement',
+        max_loops: 2,
+      },
     ],
   });
 }

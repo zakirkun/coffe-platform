@@ -46,7 +46,7 @@ export type CreateRequirementRequest = z.infer<typeof CreateRequirementRequest>;
 export const PlanRequirementRequest = z.object({ plannerPersonaId: Uuid.optional() });
 export type PlanRequirementRequest = z.infer<typeof PlanRequirementRequest>;
 
-/** `POST /workspaces/:ws/requirements/:requirementId/drafts` and `PATCH …/drafts/:draftId` */
+/** `POST /workspaces/:ws/requirements/:requirementId/drafts` */
 export const UpsertDraftRequest = z.object({
   title: z.string().min(1).max(300),
   description: z.string().max(50_000).default(''),
@@ -57,6 +57,18 @@ export const UpsertDraftRequest = z.object({
   position: z.number().int().min(0).optional(),
 });
 export type UpsertDraftRequest = z.infer<typeof UpsertDraftRequest>;
+
+/** `PATCH /workspaces/:ws/requirements/:requirementId/drafts/:draftId` (no defaults: absent = unchanged). */
+export const UpdateDraftRequest = z.object({
+  title: z.string().min(1).max(300).optional(),
+  description: z.string().max(50_000).optional(),
+  acceptanceCriteria: z.array(z.string().min(1).max(2_000)).max(50).optional(),
+  suggestedRole: PersonaRole.nullable().optional(),
+  estimate: z.string().max(40).nullable().optional(),
+  dependsOn: z.array(z.number().int().min(0)).max(50).optional(),
+  position: z.number().int().min(0).optional(),
+});
+export type UpdateDraftRequest = z.infer<typeof UpdateDraftRequest>;
 
 /** `POST /workspaces/:ws/requirements/:requirementId/approve` — creates Backlog tickets. */
 export const ApproveRequirementRequest = z.object({

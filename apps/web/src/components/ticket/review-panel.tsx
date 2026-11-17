@@ -121,32 +121,35 @@ function FileDiff({ ticketId, diff, file }: { ticketId: string; diff: Diff; file
   );
 }
 
-function TestSummary({ tests }: { tests: TestResult[] }) {
-  const [latest] = tests;
-  if (!latest) return null;
+const TEST_SOURCE_TITLES: Record<TestResult['source'], string> = {
+  command: 'Test command',
+  agent: 'Tester report',
+};
+
+function TestCard({ result }: { result: TestResult }) {
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
-          Tests
-          <Badge variant={TEST_BADGES[latest.status]}>{latest.status}</Badge>
+          {TEST_SOURCE_TITLES[result.source]}
+          <Badge variant={TEST_BADGES[result.status]}>{result.status}</Badge>
         </CardTitle>
         <CardDescription>
-          {latest.passed} passed · {latest.failed} failed · {latest.skipped} skipped
-          {latest.durationMs != null ? ` · ${formatDuration(latest.durationMs)}` : ''}
-          {latest.command ? (
+          {result.passed} passed · {result.failed} failed · {result.skipped} skipped
+          {result.durationMs != null ? ` · ${formatDuration(result.durationMs)}` : ''}
+          {result.command ? (
             <>
               {' · '}
-              <code className="font-mono">{latest.command}</code>
+              <code className="font-mono">{result.command}</code>
             </>
           ) : null}
         </CardDescription>
       </CardHeader>
-      {latest.failures.length > 0 || latest.outputTail ? (
+      {result.failures.length > 0 || result.outputTail ? (
         <CardContent className="flex flex-col gap-2">
-          {latest.failures.length > 0 ? (
+          {result.failures.length > 0 ? (
             <ul className="list-disc pl-5 text-sm">
-              {latest.failures.map((failure) => (
+              {result.failures.map((failure) => (
                 <li key={failure.name}>
                   <span className="font-medium">{failure.name}</span>
                   {failure.message ? `: ${failure.message}` : ''}
@@ -154,11 +157,11 @@ function TestSummary({ tests }: { tests: TestResult[] }) {
               ))}
             </ul>
           ) : null}
-          {latest.outputTail ? (
+          {result.outputTail ? (
             <details>
               <summary className="cursor-pointer text-sm text-muted-foreground">Output</summary>
               <pre className="mt-2 max-h-64 overflow-auto rounded-md bg-muted p-3 font-mono text-xs whitespace-pre-wrap">
-                {latest.outputTail}
+                {result.outputTail}
               </pre>
             </details>
           ) : null}
@@ -166,6 +169,12 @@ function TestSummary({ tests }: { tests: TestResult[] }) {
       ) : null}
     </Card>
   );
+}
+
+/** The latest result of the project's test command and of the tester persona (newest first). */
+function TestSummary({ tests }: { tests: TestResult[] }) {
+  const latest = (['command', 'agent'] as const).flatMap((source) => tests.find((test) => test.source === source) ?? []);
+  return latest.map((result) => <TestCard key={result.id} result={result} />);
 }
 
 function DecisionBar({ ticket, review }: { ticket: Ticket; review: ReviewState }) {

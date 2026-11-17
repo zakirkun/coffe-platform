@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertTriangle, ArrowLeft, GitBranch, GitMerge } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, GitBranch, GitMerge, Lock } from 'lucide-react';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -18,6 +18,7 @@ import { useTicket } from '@/lib/queries/tickets';
 import { TICKET_STATUS_BADGES, TICKET_STATUS_LABELS } from '@/lib/ticket-status';
 import { ReviewPanel } from './review-panel';
 import { RunPanel } from './run-panel';
+import { WorkflowPanel } from './workflow-panel';
 
 export function TicketPage({ ticketId }: { ticketId: string }) {
   const { id: workspaceId } = useWorkspace();
@@ -72,6 +73,17 @@ export function TicketPage({ ticketId }: { ticketId: string }) {
               <GitMerge /> Merge conflict
             </Badge>
           ) : null}
+          {current.blockedBy.length > 0 ? (
+            <Badge variant="warning">
+              <Lock /> Blocked by{' '}
+              {current.blockedBy.map((blocker, index) => (
+                <Link key={blocker.id} href={`/w/${workspaceId}/t/${blocker.id}`} className="underline">
+                  {blocker.key}
+                  {index < current.blockedBy.length - 1 ? ',' : ''}
+                </Link>
+              ))}
+            </Badge>
+          ) : null}
           {current.branch ? (
             <span className="flex items-center gap-1 font-mono text-xs text-muted-foreground">
               <GitBranch className="size-3.5" />
@@ -80,6 +92,7 @@ export function TicketPage({ ticketId }: { ticketId: string }) {
           ) : null}
         </div>
       </div>
+      <WorkflowPanel ticket={current} />
       <Tabs defaultValue={current.status === 'in_review' ? 'review' : 'run'}>
         <TabsList>
           <TabsTrigger value="run">Run</TabsTrigger>

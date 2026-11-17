@@ -22,6 +22,7 @@ export interface ApiClient {
   get(path: string): Promise<ApiResponse>;
   post(path: string, body?: unknown): Promise<ApiResponse>;
   patch(path: string, body: unknown): Promise<ApiResponse>;
+  put(path: string, body: unknown): Promise<ApiResponse>;
   del(path: string): Promise<ApiResponse>;
 }
 
@@ -125,6 +126,7 @@ export function api(t: TestApp, user: TestUser | null): ApiClient {
     get: (path) => call('GET', path),
     post: (path, body) => call('POST', path, body),
     patch: (path, body) => call('PATCH', path, body),
+    put: (path, body) => call('PUT', path, body),
     del: (path) => call('DELETE', path),
   };
 }

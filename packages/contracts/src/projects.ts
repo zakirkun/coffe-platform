@@ -19,6 +19,8 @@ export const ProjectSettings = z.object({
   pushOnApprove: z.boolean().optional(),
   remote: z.string().nullable().optional(),
   autoAdvance: z.boolean().optional(),
+  /** The review gate blocks approval while the latest test result of a source (command, agent) failed. */
+  requirePassingTests: z.boolean().optional(),
   defaultCliId: z.string().nullable().optional(),
   defaultMode: RunMode.optional(),
 });

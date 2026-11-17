@@ -851,7 +851,9 @@ Planning / wiki / query runs use any eligible project runner in a detached read-
 
 - Diff list from `diffs` (stored patch). Monaco side-by-side per file fetches both versions on
   demand via `git.file` (relayed, not stored). Runner offline → stored unified patch rendering.
-- Test results (command-run by the runner + agent reports), run timeline, usage, comments per line.
+- Test results: the latest result of the project's test command (run by the runner) and of the
+  tester persona's report, run timeline, usage. With `requirePassingTests` a failed latest result
+  of either source blocks approval (D19).
 - **Approve** → audited `review(approved)` → `git.merge` (strategy from project settings) →
   optional push → worktree cleanup → ticket `done`.
 - **Request changes** → feedback becomes the handoff note of a new implementer run on the same
@@ -1151,6 +1153,10 @@ Each phase ends with: tests, run instructions (`docs/phase-N.md`), and a "not fi
 | D13 | Docker = the runner drives the host's Docker Engine (bollard). | Sokudo ships its own VM engine; COFFE's runner already runs on the machine that owns Docker. |
 | D14 | DB connections + credentials live only in the runner's encrypted local store; the control plane keeps no DB connection rows at all. | Requirement 14 ("exist only on the runner"). |
 | D15 | Diffs (patches) are stored; full file contents are relayed on demand and never persisted. | Requirement: control plane stores logs, diffs, metadata — not source code. |
+| D16 | The CLI capability catalog (`CLI_CATALOG`, `unenforceableLimits`) lives in `@coffe/contracts`. | The persona editor shows the same "not enforceable" list live that the API stores on the persona; one table instead of two. |
+| D17 | Workflow steps advance from `RunStore.onEnded` inside the API (no pg-boss job per step), serialized per instance with `SELECT … FOR UPDATE`; on start the API re-evaluates running workflows whose step runs ended while it was down. Verdicts come from fenced JSON blocks (`coffe-test-report`, `coffe-review`) in the run summary. | Step transitions follow run completion once and in order without a second queue; every CLI can print a fenced block, while structured output exists only in some. |
+| D18 | Kanban drag and drop keeps the local column order until the move request settles; the server computes fractional positions from the neighbours (`afterId`/`beforeId`). | No flicker between drop and confirmation; concurrent moves never need a full reorder. |
+| D19 | `requirePassingTests` (project setting) turns the latest failed test command or tester report into a review-gate blocker. | Off by default so projects without tests can still approve; when on, the gate is enforced by the API, not only shown. |
 
 ### 19.2 Answered questions (2026-11-16)
 

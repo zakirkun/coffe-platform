@@ -241,6 +241,7 @@ function RunView({ run }: { run: Run }) {
           </Badge>
           <span className="font-mono text-sm">{run.cliId}</span>
           <span className="text-sm font-normal text-muted-foreground">{run.mode === 'pty' ? 'terminal' : 'structured'}</span>
+          {run.workflowStepKey ? <Badge variant="outline">{run.workflowStepKey}</Badge> : null}
           {elapsed !== null ? <span className="text-sm font-normal text-muted-foreground">{formatDuration(elapsed)}</span> : null}
           <RunUsage run={run} />
         </CardTitle>
@@ -342,6 +343,7 @@ export function RunPanel({ ticket, project, runs, bindings, runners }: RunPanelP
                   <Badge variant={RUN_STATUS_BADGES[run.status]}>{RUN_STATUS_LABELS[run.status]}</Badge>
                   <span className="font-mono">{run.cliId}</span>
                   {run.parentRunId ? <span className="text-xs text-muted-foreground">follow-up</span> : null}
+                  {run.workflowStepKey ? <Badge variant="outline">{run.workflowStepKey}</Badge> : null}
                   <span className="ml-auto text-xs text-muted-foreground">{formatDateTime(run.createdAt)}</span>
                 </button>
               </li>

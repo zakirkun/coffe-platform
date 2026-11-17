@@ -212,6 +212,7 @@ impl Agent {
             }
             Scenario::Permission => self.permission(prompt),
             Scenario::LongOutput => self.long_output(),
+            Scenario::Plan => self.plan(),
         }
     }
 
@@ -280,6 +281,34 @@ impl Agent {
         self.step(&Event::Message { text: &summary })?;
         self.step(&TURN_USAGE)?;
         Ok(Outcome::completed(summary))
+    }
+
+    /// A planner's answer: the plan JSON as the final message (no file is touched).
+    fn plan(&mut self) -> Result<Outcome, Abort> {
+        let plan = json!({
+            "tickets": [
+                {
+                    "title": "Add the badge component",
+                    "description": "A small badge that shows a count.",
+                    "acceptance_criteria": ["The badge renders the count"],
+                    "depends_on": [],
+                    "suggested_role": "implementer",
+                    "estimate": "S"
+                },
+                {
+                    "title": "Show the badge on the cart icon",
+                    "description": "Wire the badge to the cart item count.",
+                    "acceptance_criteria": ["The cart icon shows the number of items"],
+                    "depends_on": [0],
+                    "suggested_role": "implementer",
+                    "estimate": "M"
+                }
+            ]
+        })
+        .to_string();
+        self.step(&Event::Message { text: &plan })?;
+        self.step(&TURN_USAGE)?;
+        Ok(Outcome::completed(plan))
     }
 }
 

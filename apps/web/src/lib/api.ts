@@ -1,20 +1,32 @@
 import {
   ApiError,
   type ApproveRequest,
+  type ApproveRequirementRequest,
   ApproveResponse,
   AuditPage,
   type BindRepoRequest,
+  ContextDoc,
+  ContextPreview,
+  type CreateContextDocRequest,
   type CreatePairingTokenRequest,
+  type CreatePersonaRequest,
   type CreateProjectRequest,
+  type CreateRequirementRequest,
   type CreateTicketRequest,
+  type CreateWorkflowRequest,
   Diff,
   FileContentResponse,
   MeResponse,
+  type MoveTicketRequest,
   PairingTokenResponse,
+  Persona,
+  type PlanRequirementRequest,
+  PricingTable,
   Project,
   ProjectRepoBinding,
   type RequestChangesRequest,
   RequestChangesResponse,
+  Requirement,
   ReviewState,
   Run,
   RunEventsResponse,
@@ -23,8 +35,20 @@ import {
   type RunSignalRequest,
   Runner,
   type StartRunRequest,
+  type StartTicketRequest,
   Ticket,
+  TicketDraft,
+  type UpdateContextDocRequest,
+  type UpdateDraftRequest,
+  type UpdatePersonaRequest,
   type UpdateProjectRequest,
+  type UpdateTicketRequest,
+  type UpdateWorkflowRequest,
+  type UpsertDraftRequest,
+  type UsageQuery,
+  UsageReport,
+  Workflow,
+  WorkflowInstance,
 } from '@coffe/contracts';
 import { z } from 'zod';
 
@@ -76,7 +100,7 @@ export function errorMessage(error: unknown): string {
 type QueryParams = Record<string, string | number | undefined>;
 
 interface RequestOptions {
-  method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
+  method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
   body?: unknown;
   query?: QueryParams;
   signal?: AbortSignal;
@@ -195,6 +219,10 @@ export const api = {
       method: 'POST',
       body,
     }),
+  updateTicket: (ws: string, ticketId: string, body: UpdateTicketRequest) =>
+    requestJson(Ticket, `${workspacePath(ws)}/tickets/${ticketId}`, { method: 'PATCH', body }),
+  moveTicket: (ws: string, ticketId: string, body: MoveTicketRequest) =>
+    requestJson(Ticket, `${workspacePath(ws)}/tickets/${ticketId}/move`, { method: 'POST', body }),
   getTicket: (ws: string, ticketId: string, signal?: AbortSignal) =>
     requestJson(Ticket, `${workspacePath(ws)}/tickets/${ticketId}`, { signal }),
 
@@ -244,4 +272,69 @@ export const api = {
   // Audit
   listAudit: (ws: string, query: { cursor?: string; limit: number }, signal?: AbortSignal) =>
     requestJson(AuditPage, `${workspacePath(ws)}/audit`, { query, signal }),
+
+  // Personas
+  listPersonas: (ws: string, projectId: string | undefined, signal?: AbortSignal) =>
+    requestJson(z.array(Persona), `${workspacePath(ws)}/personas`, { query: { projectId }, signal }),
+  createPersona: (ws: string, body: CreatePersonaRequest) =>
+    requestJson(Persona, `${workspacePath(ws)}/personas`, { method: 'POST', body }),
+  updatePersona: (ws: string, personaId: string, body: UpdatePersonaRequest) =>
+    requestJson(Persona, `${workspacePath(ws)}/personas/${personaId}`, { method: 'PATCH', body }),
+  archivePersona: async (ws: string, personaId: string): Promise<void> => {
+    await send(`${workspacePath(ws)}/personas/${personaId}`, { method: 'DELETE' });
+  },
+
+  // Project context
+  listContext: (ws: string, projectId: string, signal?: AbortSignal) =>
+    requestJson(z.array(ContextDoc), `${workspacePath(ws)}/projects/${projectId}/context`, { signal }),
+  createContextDoc: (ws: string, projectId: string, body: CreateContextDocRequest) =>
+    requestJson(ContextDoc, `${workspacePath(ws)}/projects/${projectId}/context`, { method: 'POST', body }),
+  updateContextDoc: (ws: string, docId: string, body: UpdateContextDocRequest) =>
+    requestJson(ContextDoc, `${workspacePath(ws)}/context/${docId}`, { method: 'PATCH', body }),
+  deleteContextDoc: async (ws: string, docId: string): Promise<void> => {
+    await send(`${workspacePath(ws)}/context/${docId}`, { method: 'DELETE' });
+  },
+  previewContext: (ws: string, projectId: string, query: { ticketId?: string; personaId?: string }, signal?: AbortSignal) =>
+    requestJson(ContextPreview, `${workspacePath(ws)}/projects/${projectId}/context/preview`, { query, signal }),
+
+  // Workflows
+  listWorkflows: (ws: string, projectId: string, signal?: AbortSignal) =>
+    requestJson(z.array(Workflow), `${workspacePath(ws)}/projects/${projectId}/workflows`, { signal }),
+  createWorkflow: (ws: string, projectId: string, body: CreateWorkflowRequest) =>
+    requestJson(Workflow, `${workspacePath(ws)}/projects/${projectId}/workflows`, { method: 'POST', body }),
+  updateWorkflow: (ws: string, workflowId: string, body: UpdateWorkflowRequest) =>
+    requestJson(Workflow, `${workspacePath(ws)}/workflows/${workflowId}`, { method: 'PATCH', body }),
+  startTicket: (ws: string, ticketId: string, body: StartTicketRequest) =>
+    requestJson(WorkflowInstance, `${workspacePath(ws)}/tickets/${ticketId}/start`, { method: 'POST', body }),
+  getTicketWorkflow: (ws: string, ticketId: string, signal?: AbortSignal) =>
+    requestJson(WorkflowInstance, `${workspacePath(ws)}/tickets/${ticketId}/workflow`, { signal }),
+  cancelTicketWorkflow: (ws: string, ticketId: string) =>
+    requestJson(WorkflowInstance, `${workspacePath(ws)}/tickets/${ticketId}/workflow/cancel`, { method: 'POST' }),
+
+  // Planning
+  listRequirements: (ws: string, projectId: string, signal?: AbortSignal) =>
+    requestJson(z.array(Requirement), `${workspacePath(ws)}/projects/${projectId}/requirements`, { signal }),
+  createRequirement: (ws: string, projectId: string, body: CreateRequirementRequest) =>
+    requestJson(Requirement, `${workspacePath(ws)}/projects/${projectId}/requirements`, { method: 'POST', body }),
+  planRequirement: (ws: string, requirementId: string, body: PlanRequirementRequest) =>
+    requestJson(Requirement, `${workspacePath(ws)}/requirements/${requirementId}/plan`, { method: 'POST', body }),
+  addDraft: (ws: string, requirementId: string, body: UpsertDraftRequest) =>
+    requestJson(TicketDraft, `${workspacePath(ws)}/requirements/${requirementId}/drafts`, { method: 'POST', body }),
+  updateDraft: (ws: string, requirementId: string, draftId: string, body: UpdateDraftRequest) =>
+    requestJson(TicketDraft, `${workspacePath(ws)}/requirements/${requirementId}/drafts/${draftId}`, {
+      method: 'PATCH',
+      body,
+    }),
+  discardDraft: async (ws: string, requirementId: string, draftId: string): Promise<void> => {
+    await send(`${workspacePath(ws)}/requirements/${requirementId}/drafts/${draftId}`, { method: 'DELETE' });
+  },
+  approveRequirement: (ws: string, requirementId: string, body: ApproveRequirementRequest) =>
+    requestJson(z.array(Ticket), `${workspacePath(ws)}/requirements/${requirementId}/approve`, { method: 'POST', body }),
+
+  // Usage
+  usage: (ws: string, query: Partial<UsageQuery>, signal?: AbortSignal) =>
+    requestJson(UsageReport, `${workspacePath(ws)}/usage`, { query, signal }),
+  pricing: (ws: string, signal?: AbortSignal) => requestJson(PricingTable, `${workspacePath(ws)}/pricing`, { signal }),
+  setPricing: (ws: string, body: PricingTable) =>
+    requestJson(PricingTable, `${workspacePath(ws)}/pricing`, { method: 'PUT', body }),
 };

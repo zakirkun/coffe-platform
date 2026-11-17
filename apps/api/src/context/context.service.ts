@@ -54,7 +54,12 @@ export class ContextService {
     return rows.map(toContextDoc);
   }
 
-  async create(workspaceId: string, userId: string, projectId: string, body: CreateContextDocRequest): Promise<ContextDoc> {
+  async create(
+    workspaceId: string,
+    userId: string,
+    projectId: string,
+    body: CreateContextDocRequest,
+  ): Promise<ContextDoc> {
     await this.assertProject(workspaceId, projectId);
     const [last] = await this.db
       .select({ position: max(contextDocs.position) })
@@ -76,7 +81,12 @@ export class ContextService {
     return toContextDoc(row);
   }
 
-  async update(workspaceId: string, userId: string, docId: string, body: UpdateContextDocRequest): Promise<ContextDoc> {
+  async update(
+    workspaceId: string,
+    userId: string,
+    docId: string,
+    body: UpdateContextDocRequest,
+  ): Promise<ContextDoc> {
     await this.getRow(workspaceId, docId);
     const [row] = await this.db
       .update(contextDocs)
@@ -100,8 +110,30 @@ export class ContextService {
   }
 
   /** The exact files a run would receive (transparency in the UI). */
-  async preview(workspaceId: string, projectId: string, ticketId?: string, personaId?: string): Promise<ContextPreview> {
+  async preview(
+    workspaceId: string,
+    projectId: string,
+    ticketId?: string,
+    personaId?: string,
+  ): Promise<ContextPreview> {
     await this.assertProject(workspaceId, projectId);
+    // `build` looks rows up by id alone; ids from the query must belong to this project/workspace.
+    if (ticketId) {
+      const [ticket] = await this.db
+        .select({ id: tickets.id })
+        .from(tickets)
+        .where(and(eq(tickets.id, ticketId), eq(tickets.projectId, projectId)))
+        .limit(1);
+      if (!ticket) throw ApiException.notFound('Ticket');
+    }
+    if (personaId) {
+      const [persona] = await this.db
+        .select({ id: personas.id })
+        .from(personas)
+        .where(and(eq(personas.id, personaId), eq(personas.workspaceId, workspaceId)))
+        .limit(1);
+      if (!persona) throw ApiException.notFound('Persona');
+    }
     const bundle = await this.build({ projectId, kind: 'ticket', ticketId, personaId });
     return {
       files: bundle.files,
@@ -123,15 +155,26 @@ export class ContextService {
       ? await this.db.select().from(personas).where(eq(personas.id, request.personaId)).limit(1)
       : [];
     const [requirement] = request.requirementId
-      ? await this.db.select().from(requirements).where(eq(requirements.id, request.requirementId)).limit(1)
+      ? await this.db
+          .select()
+          .from(requirements)
+          .where(eq(requirements.id, request.requirementId))
+          .limit(1)
       : [];
     const files = buildContextFiles({
       kind: request.kind,
       ticket: ticket
-        ? { key: ticket.key, title: ticket.title, description: ticket.description, acceptanceCriteria: ticket.acceptanceCriteria }
+        ? {
+            key: ticket.key,
+            title: ticket.title,
+            description: ticket.description,
+            acceptanceCriteria: ticket.acceptanceCriteria,
+          }
         : null,
       requirement: requirement ? { title: requirement.title, body: requirement.body } : null,
-      persona: persona ? { name: persona.name, role: persona.role, instructions: persona.instructions } : null,
+      persona: persona
+        ? { name: persona.name, role: persona.role, instructions: persona.instructions }
+        : null,
       rules: docs.filter((doc) => doc.kind === 'rule'),
       knowledge: docs.filter((doc) => doc.kind === 'knowledge'),
       handoff: request.handoff ?? null,

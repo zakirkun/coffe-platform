@@ -7,6 +7,7 @@ import { ContextModule } from './context/context.module.js';
 import { DbModule } from './db/db.module.js';
 import { JobsModule } from './jobs/jobs.module.js';
 import { PersonasModule } from './personas/personas.module.js';
+import { PlanningModule } from './planning/planning.module.js';
 import { ProjectsModule } from './projects/projects.module.js';
 import { RealtimeModule } from './realtime/realtime.module.js';
 import { ReviewModule } from './review/review.module.js';
@@ -14,6 +15,7 @@ import { RunnersModule } from './runners/runners.module.js';
 import { RunsModule } from './runs/runs.module.js';
 import { TicketsModule } from './tickets/tickets.module.js';
 import { UsageModule } from './usage/usage.module.js';
+import { WorkflowsModule } from './workflows/workflows.module.js';
 import { WorkspacesModule } from './workspaces/workspaces.module.js';
 
 @Module({
@@ -46,6 +48,8 @@ import { WorkspacesModule } from './workspaces/workspaces.module.js';
     PersonasModule,
     ContextModule,
     UsageModule,
+    WorkflowsModule,
+    PlanningModule,
   ],
 })
 export class AppModule {}

@@ -6,7 +6,7 @@ import {
   ReviewState,
   Ticket,
 } from '@coffe/contracts';
-import type { DiffSummary } from '@coffe/protocol';
+import type { DiffSummary, TestReport } from '@coffe/protocol';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { resetDatabase, startTestApp, type TestApp } from './support/app.js';
 import { type TicketScenario, eventually, expectStatus, startRun, ticketScenario } from './support/scenario.js';
@@ -45,8 +45,10 @@ function getTicket(s: TicketScenario): Promise<Ticket> {
 }
 
 /** A ticket whose run completed with a diff: In Review, ready for a decision. */
-async function inReview(): Promise<TicketScenario & { runId: string }> {
-  const s = await ticketScenario(t, await signUpWithWorkspace(t));
+async function inReview(
+  options: { settings?: Record<string, unknown>; tests?: TestReport } = {},
+): Promise<TicketScenario & { runId: string }> {
+  const s = await ticketScenario(t, await signUpWithWorkspace(t), options.settings ? { settings: options.settings } : {});
   scenarios.push(s);
   const { run } = await startRun(t, s);
   s.runner.send({
@@ -61,7 +63,15 @@ async function inReview(): Promise<TicketScenario & { runId: string }> {
   });
   s.runner.send({
     type: 'run.completed',
-    payload: { run_id: run.id, seq: 2, status: 'completed', exit_code: 0, summary: 'Added the badge.', diff: DIFF },
+    payload: {
+      run_id: run.id,
+      seq: 2,
+      status: 'completed',
+      exit_code: 0,
+      summary: 'Added the badge.',
+      diff: DIFF,
+      ...(options.tests ? { tests: options.tests } : {}),
+    },
   });
   await eventually(
     () => getTicket(s),
@@ -133,6 +143,34 @@ describe('approve', () => {
     const response = await api(t, s.owner).post(`/workspaces/${s.owner.workspaceId}/tickets/${s.ticket.id}/approve`, {});
     expect(response.status).toBe(409);
     expect(response.body).toMatchObject({ error: { code: 'cannot_approve' } });
+  });
+
+  it('is refused while the latest tests fail when the project requires passing tests', async () => {
+    const s = await inReview({
+      settings: { requirePassingTests: true },
+      tests: {
+        source: 'command',
+        command: 'pnpm test',
+        status: 'failed',
+        passed: 3,
+        failed: 1,
+        skipped: 0,
+        failures: [{ name: 'cart badge shows the count', message: 'expected 1, got 0' }],
+      },
+    });
+    const client = api(t, s.owner);
+    const reviewPath = `/workspaces/${s.owner.workspaceId}/tickets/${s.ticket.id}/review`;
+    const gated = ReviewState.parse(expectStatus(await client.get(reviewPath), 200));
+    expect(gated.tests[0]).toMatchObject({ source: 'command', status: 'failed', failed: 1 });
+    expect(gated.canApprove).toBe(false);
+    expect(gated.blockers).toEqual(['The latest test command did not pass']);
+
+    expectStatus(
+      await client.patch(`/workspaces/${s.owner.workspaceId}/projects/${s.project.id}`, { settings: { requirePassingTests: false } }),
+      200,
+    );
+    const open = ReviewState.parse(expectStatus(await client.get(reviewPath), 200));
+    expect(open.canApprove).toBe(true);
   });
 });
 

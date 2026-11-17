@@ -39,6 +39,7 @@ export function toStoredSettings(settings: ProjectSettings): StoredProjectSettin
     ...(settings.pushOnApprove !== undefined ? { push_on_approve: settings.pushOnApprove } : {}),
     ...(settings.remote !== undefined ? { remote: settings.remote } : {}),
     ...(settings.autoAdvance !== undefined ? { auto_advance: settings.autoAdvance } : {}),
+    ...(settings.requirePassingTests !== undefined ? { require_passing_tests: settings.requirePassingTests } : {}),
     ...(settings.defaultCliId !== undefined ? { default_cli_id: settings.defaultCliId } : {}),
     ...(settings.defaultMode !== undefined ? { default_mode: settings.defaultMode } : {}),
   };
@@ -52,6 +53,7 @@ export function toProjectSettings(settings: StoredProjectSettings): ProjectSetti
     ...(settings.push_on_approve !== undefined ? { pushOnApprove: settings.push_on_approve } : {}),
     ...(settings.remote !== undefined ? { remote: settings.remote } : {}),
     ...(settings.auto_advance !== undefined ? { autoAdvance: settings.auto_advance } : {}),
+    ...(settings.require_passing_tests !== undefined ? { requirePassingTests: settings.require_passing_tests } : {}),
     ...(settings.default_cli_id !== undefined ? { defaultCliId: settings.default_cli_id } : {}),
     ...(settings.default_mode !== undefined ? { defaultMode: settings.default_mode } : {}),
   };

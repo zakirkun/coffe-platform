@@ -1,4 +1,4 @@
-import { PricingTable, type UsageReport, UsageQuery } from '@coffe/contracts';
+import { PricingTable, UsageQuery, type UsageReport } from '@coffe/contracts';
 import { Body, Controller, Get, Put, Query, UseGuards } from '@nestjs/common';
 import type { z } from 'zod';
 import { Audit } from '../audit/audit.interceptor.js';

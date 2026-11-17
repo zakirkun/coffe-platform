@@ -32,6 +32,11 @@ type DiffRow = typeof diffs.$inferSelect;
 type MergeRow = typeof merges.$inferSelect;
 type TestRow = typeof testResults.$inferSelect;
 
+const TEST_SOURCE_LABELS: ReadonlyArray<[TestRow['source'], string]> = [
+  ['command', 'test command'],
+  ['agent', 'tester report'],
+];
+
 function toDiff(row: DiffRow): Diff {
   return {
     id: row.id,
@@ -127,6 +132,18 @@ export class ReviewService {
     if (latestRun && !latestRun.endedAt) blockers.push('A run of this ticket is still active');
     if (!ticket.worktreeRunnerId || !this.hub.isOnline(ticket.worktreeRunnerId)) {
       blockers.push('The runner holding the worktree is offline');
+    }
+    const [project] = await this.db
+      .select({ settings: projects.settings })
+      .from(projects)
+      .where(eq(projects.id, ticket.projectId))
+      .limit(1);
+    if (project?.settings.require_passing_tests === true) {
+      if (tests.length === 0) blockers.push('The project requires passing tests and none ran yet');
+      for (const [source, label] of TEST_SOURCE_LABELS) {
+        const latest = tests.find((test) => test.source === source);
+        if (latest && latest.status !== 'passed') blockers.push(`The latest ${label} did not pass`);
+      }
     }
     return {
       diff: diff ? toDiff(diff) : null,

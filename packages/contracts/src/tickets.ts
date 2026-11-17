@@ -8,6 +8,7 @@ export type TicketStatus = z.infer<typeof TicketStatus>;
 
 export const TicketFlags = z.object({
   failed: z.boolean().optional(),
+  /** At least one ticket this one depends on is not Done yet (see `blockedBy`). */
   blocked: z.boolean().optional(),
   mergeConflict: z.boolean().optional(),
 });
@@ -34,6 +35,8 @@ export const Ticket = z.object({
   worktreeRunnerId: Uuid.nullable(),
   repoId: Uuid.nullable(),
   flags: TicketFlags,
+  /** Dependencies (from planning) that are not Done yet; workflows refuse to start until empty. */
+  blockedBy: z.array(z.object({ id: Uuid, key: z.string(), status: TicketStatus })),
   /** Latest run summary for board badges. */
   latestRun: z
     .object({ id: Uuid, status: RunStatus, cliId: z.string(), personaId: Uuid.nullable() })

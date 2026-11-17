@@ -148,6 +148,7 @@
  * roles owner / member / reviewer). Session cookie prefix `coffe`.
  */
 export * from './audit.js';
+export * from './clis.js';
 export * from './common.js';
 export * from './context.js';
 export * from './environment.js';

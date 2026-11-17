@@ -80,17 +80,31 @@ export class RunScheduler {
         })
         .from(runnerRepos)
         .innerJoin(runners, eq(runners.id, runnerRepos.runnerId))
-        .where(and(eq(runnerRepos.id, repoFilter), eq(runners.workspaceId, request.workspaceId), ne(runners.status, 'revoked')))
+        .where(
+          and(
+            eq(runnerRepos.id, repoFilter),
+            eq(runners.workspaceId, request.workspaceId),
+            ne(runners.status, 'revoked'),
+          ),
+        )
         .limit(1);
       if (bound) rows.push({ ...bound, primary: false });
     }
     const eligible = rows.filter(
-      (row) => (!repoFilter || row.repoId === repoFilter) && (!runnerFilter || row.runnerId === runnerFilter),
+      (row) =>
+        (!repoFilter || row.repoId === repoFilter) &&
+        (!runnerFilter || row.runnerId === runnerFilter),
     );
     if (eligible.length === 0) {
       throw repoFilter || runnerFilter
-        ? ApiException.conflict('runner_unavailable', 'The runner holding this ticket is revoked or no longer has the repository')
-        : ApiException.conflict('no_repo', 'Bind a repository to the project before starting a run');
+        ? ApiException.conflict(
+            'runner_unavailable',
+            'The runner holding this ticket is revoked or no longer has the repository',
+          )
+        : ApiException.conflict(
+            'no_repo',
+            'Bind a repository to the project before starting a run',
+          );
     }
 
     const runnerIds = [...new Set(eligible.map((row) => row.runnerId))];
@@ -112,7 +126,9 @@ export class RunScheduler {
       clis: clis.filter((cli) => cli.runnerId === row.runnerId).map((cli) => cli.cliId),
       online: this.hub.isOnline(row.runnerId),
       primary: row.primary,
-      freeSlots: row.maxConcurrentRuns - (busy.find((entry) => entry.runnerId === row.runnerId)?.active ?? 0),
+      freeSlots:
+        row.maxConcurrentRuns -
+        (busy.find((entry) => entry.runnerId === row.runnerId)?.active ?? 0),
     }));
     const capable = request.cliId
       ? candidates.filter((candidate) => request.cliId && candidate.clis.includes(request.cliId))
@@ -120,7 +136,10 @@ export class RunScheduler {
     if (capable.length === 0) {
       const names = [...new Set(candidates.map((candidate) => candidate.runnerName))].join(', ');
       throw request.cliId
-        ? ApiException.conflict('cli_not_detected', `${request.cliId} is not installed on runner ${names}`)
+        ? ApiException.conflict(
+            'cli_not_detected',
+            `${request.cliId} is not installed on runner ${names}`,
+          )
         : ApiException.conflict('no_cli', `No agent CLI was detected on runner ${names}`);
     }
     const [best] = capable.toSorted(
@@ -131,6 +150,12 @@ export class RunScheduler {
         b.freeSlots - a.freeSlots,
     );
     if (!best) throw new Error('no capable runner after filtering');
-    return { runnerId: best.runnerId, runnerName: best.runnerName, repoId: best.repoId, defaultBranch: best.defaultBranch, clis: best.clis };
+    return {
+      runnerId: best.runnerId,
+      runnerName: best.runnerName,
+      repoId: best.repoId,
+      defaultBranch: best.defaultBranch,
+      clis: best.clis,
+    };
   }
 }

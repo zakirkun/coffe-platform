@@ -5,7 +5,18 @@ import {
   UpdatePersonaRequest,
   Uuid,
 } from '@coffe/contracts';
-import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import type { z } from 'zod';
 import { Audit } from '../audit/audit.interceptor.js';
 import { CurrentUser, CurrentWorkspace, RequirePermission } from '../auth/decorators.js';

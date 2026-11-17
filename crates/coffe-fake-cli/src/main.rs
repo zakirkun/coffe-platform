@@ -71,6 +71,8 @@ pub enum Scenario {
     /// Streams 2000 lines of text.
     #[value(name = "long_output", alias = "long-output")]
     LongOutput,
+    /// Answers with a two-ticket plan in the JSON shape planning runs ask for.
+    Plan,
 }
 
 impl Scenario {

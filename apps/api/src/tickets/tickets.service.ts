@@ -7,7 +7,7 @@ import type {
   UpdateTicketRequest,
 } from '@coffe/contracts';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, asc, desc, eq, inArray, isNull, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull, ne, or, sql } from 'drizzle-orm';
 import { generateKeyBetween } from 'fractional-indexing';
 import { ApiException } from '../common/api-error.js';
 import type { Database } from '../db/client.js';
@@ -18,12 +18,14 @@ import {
   projects,
   runs,
   type TicketFlags as StoredTicketFlags,
+  ticketDependencies,
   tickets,
 } from '../db/schema/index.js';
 import { RealtimeService } from '../realtime/realtime.service.js';
 
 export type TicketRow = typeof tickets.$inferSelect;
 type LatestRun = NonNullable<Ticket['latestRun']>;
+type Blocker = Ticket['blockedBy'][number];
 
 export interface TicketChange {
   status?: TicketStatus;
@@ -42,7 +44,6 @@ const POSITION_ORDER = sql`${tickets.position} collate "C"`;
 function toStoredFlags(flags: TicketFlags): StoredTicketFlags {
   const stored: StoredTicketFlags = {};
   if (flags.failed !== undefined) stored.failed = flags.failed;
-  if (flags.blocked !== undefined) stored.blocked = flags.blocked;
   if (flags.mergeConflict !== undefined) stored.merge_conflict = flags.mergeConflict;
   return stored;
 }
@@ -249,15 +250,44 @@ export class TicketsService {
     return ticket;
   }
 
+  /** The dependencies of each ticket that are not Done yet, by ticket id. */
+  async openDependencies(ticketIds: string[]): Promise<Map<string, Blocker[]>> {
+    const byTicket = new Map<string, Blocker[]>();
+    if (ticketIds.length === 0) return byTicket;
+    const rows = await this.db
+      .select({ ticketId: ticketDependencies.ticketId, id: tickets.id, key: tickets.key, status: tickets.status })
+      .from(ticketDependencies)
+      .innerJoin(tickets, eq(tickets.id, ticketDependencies.dependsOnId))
+      .where(and(inArray(ticketDependencies.ticketId, ticketIds), ne(tickets.status, 'done')))
+      .orderBy(asc(tickets.number));
+    for (const { ticketId, ...blocker } of rows) byTicket.set(ticketId, [...(byTicket.get(ticketId) ?? []), blocker]);
+    return byTicket;
+  }
+
+  /**
+   * Pushes `ticket.updated` for the ticket and for the tickets depending on it (their `blockedBy`
+   * shows this ticket's status).
+   */
   private async publish(row: TicketRow): Promise<Ticket> {
     const ticket = await this.toDto(row);
+    this.push(ticket);
+    const dependents = await this.db
+      .select()
+      .from(tickets)
+      .innerJoin(ticketDependencies, eq(ticketDependencies.ticketId, tickets.id))
+      .where(eq(ticketDependencies.dependsOnId, row.id));
+    for (const dependent of await this.toDtos(dependents.map((joined) => joined.tickets))) this.push(dependent);
+    return ticket;
+  }
+
+  private push(ticket: Ticket): void {
     this.realtime.publish(`project:${ticket.projectId}`, { ev: 'ticket.updated', ticket });
     this.realtime.publish(`ticket:${ticket.id}`, { ev: 'ticket.updated', ticket });
-    return ticket;
   }
 
   private async toDtos(rows: TicketRow[]): Promise<Ticket[]> {
     if (rows.length === 0) return [];
+    const ids = rows.map((row) => row.id);
     const latestRuns = await this.db
       .selectDistinctOn([runs.ticketId], {
         ticketId: runs.ticketId,
@@ -267,17 +297,13 @@ export class TicketsService {
         personaId: runs.personaId,
       })
       .from(runs)
-      .where(
-        inArray(
-          runs.ticketId,
-          rows.map((row) => row.id),
-        ),
-      )
+      .where(inArray(runs.ticketId, ids))
       .orderBy(runs.ticketId, desc(runs.createdAt), desc(runs.id));
     const latestByTicket = new Map<string, LatestRun>();
     for (const { ticketId, ...run } of latestRuns) {
       if (ticketId) latestByTicket.set(ticketId, run);
     }
+    const blockers = await this.openDependencies(ids);
 
     return rows.map((row) => ({
       id: row.id,
@@ -298,9 +324,10 @@ export class TicketsService {
       repoId: row.repoId,
       flags: {
         failed: row.flags.failed === true,
-        blocked: row.flags.blocked === true,
+        blocked: blockers.has(row.id),
         mergeConflict: row.flags.merge_conflict === true,
       },
+      blockedBy: blockers.get(row.id) ?? [],
       latestRun: latestByTicket.get(row.id) ?? null,
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),

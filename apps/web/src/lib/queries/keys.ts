@@ -20,4 +20,15 @@ export const queryKeys = {
   file: (ws: string, ticketId: string, rev: string, path: string) =>
     ['ws', ws, 'file', ticketId, rev, path] as const,
   audit: (ws: string) => ['ws', ws, 'audit'] as const,
+  personas: (ws: string) => ['ws', ws, 'personas'] as const,
+  allContextDocs: (ws: string) => ['ws', ws, 'context-docs'] as const,
+  contextDocs: (ws: string, projectId: string) => ['ws', ws, 'context-docs', projectId] as const,
+  allWorkflows: (ws: string) => ['ws', ws, 'workflows'] as const,
+  workflows: (ws: string, projectId: string) => ['ws', ws, 'workflows', projectId] as const,
+  allTicketWorkflows: (ws: string) => ['ws', ws, 'ticket-workflow'] as const,
+  ticketWorkflow: (ws: string, ticketId: string) => ['ws', ws, 'ticket-workflow', ticketId] as const,
+  allRequirements: (ws: string) => ['ws', ws, 'requirements'] as const,
+  requirements: (ws: string, projectId: string) => ['ws', ws, 'requirements', projectId] as const,
+  usage: (ws: string) => ['ws', ws, 'usage'] as const,
+  pricing: (ws: string) => ['ws', ws, 'pricing'] as const,
 };

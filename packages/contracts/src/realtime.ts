@@ -55,5 +55,9 @@ export const ServerEvent = z.discriminatedUnion('ev', [
   z.object({ ev: z.literal('ticket.updated'), ch: Channel, ticket: Ticket }),
   z.object({ ev: z.literal('ticket.deleted'), ch: Channel, ticketId: z.uuid() }),
   z.object({ ev: z.literal('review.updated'), ch: Channel, ticketId: z.uuid() }),
+  /** The workflow instance of a ticket changed (step started, finished, looped, ended). */
+  z.object({ ev: z.literal('workflow.updated'), ch: Channel, ticketId: z.uuid() }),
+  /** A requirement or its drafts changed (planning run finished, drafts edited, approved). */
+  z.object({ ev: z.literal('requirement.updated'), ch: Channel, requirementId: z.uuid() }),
 ]);
 export type ServerEvent = z.infer<typeof ServerEvent>;

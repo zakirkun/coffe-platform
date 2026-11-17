@@ -49,7 +49,9 @@ function coffeRules(input: BundleInput): string {
     return `${lines.join('\n')}\n`;
   }
   lines.push(
-    input.ticket ? `You are working on ticket ${input.ticket.key} in a git worktree that COFFE prepared for it.` : 'You are working in a git worktree that COFFE prepared.',
+    input.ticket
+      ? `You are working on ticket ${input.ticket.key} in a git worktree that COFFE prepared for it.`
+      : 'You are working in a git worktree that COFFE prepared.',
     '',
     ...BASE_RULES,
   );
@@ -86,7 +88,9 @@ function sectionsFile(heading: string, sections: ContextSection[]): string {
 
 function ticketFile(ticket: NonNullable<BundleInput['ticket']>): string {
   const criteria =
-    ticket.acceptanceCriteria.length > 0 ? ticket.acceptanceCriteria.map((item) => `- [ ] ${item}`).join('\n') : '_None given._';
+    ticket.acceptanceCriteria.length > 0
+      ? ticket.acceptanceCriteria.map((item) => `- [ ] ${item}`).join('\n')
+      : '_None given._';
   return [
     `# ${ticket.key}: ${ticket.title}`,
     '',
@@ -105,7 +109,7 @@ function ticketFile(ticket: NonNullable<BundleInput['ticket']>): string {
  * Drops (then truncates) knowledge and rules, least important last, until the bundle fits
  * `MAX_BUNDLE_BYTES`; COFFE rules, the persona, the ticket and the handoff are always kept.
  */
-function fit(input: BundleInput, measure: (input: BundleInput) => number): BundleInput {
+function withinCap(input: BundleInput, measure: (input: BundleInput) => number): BundleInput {
   let current = input;
   for (const key of ['knowledge', 'rules'] as const) {
     while (measure(current) > MAX_BUNDLE_BYTES && current[key].length > 0) {
@@ -116,7 +120,13 @@ function fit(input: BundleInput, measure: (input: BundleInput) => number): Bundl
       const remaining = Buffer.byteLength(last.body) - overflow - 64;
       const trimmed =
         remaining > 256
-          ? [...sections.slice(0, -1), { title: last.title, body: `${Buffer.from(last.body).subarray(0, remaining).toString()}\n\n_[truncated by COFFE]_` }]
+          ? [
+              ...sections.slice(0, -1),
+              {
+                title: last.title,
+                body: `${Buffer.from(last.body).subarray(0, remaining).toString()}\n\n_[truncated by COFFE]_`,
+              },
+            ]
           : sections.slice(0, -1);
       current = { ...current, [key]: trimmed };
     }
@@ -126,25 +136,43 @@ function fit(input: BundleInput, measure: (input: BundleInput) => number): Bundl
 
 function files(input: BundleInput): ContextFile[] {
   const result: ContextFile[] = [{ name: '00-coffe-rules.md', content: coffeRules(input) }];
-  if (input.rules.length > 0) result.push({ name: '10-project-rules.md', content: sectionsFile('Project rules', input.rules) });
+  if (input.rules.length > 0)
+    result.push({
+      name: '10-project-rules.md',
+      content: sectionsFile('Project rules', input.rules),
+    });
   if (input.persona) {
     result.push({
       name: '20-persona.md',
       content: `# Your role: ${input.persona.name} (${input.persona.role})\n\n${input.persona.instructions.trim() || '_No extra instructions._'}\n`,
     });
   }
-  if (input.knowledge.length > 0) result.push({ name: '30-knowledge.md', content: sectionsFile('Project knowledge', input.knowledge) });
+  if (input.knowledge.length > 0)
+    result.push({
+      name: '30-knowledge.md',
+      content: sectionsFile('Project knowledge', input.knowledge),
+    });
   if (input.ticket) result.push({ name: '40-ticket.md', content: ticketFile(input.ticket) });
   if (input.requirement) {
-    result.push({ name: '40-requirement.md', content: `# Requirement: ${input.requirement.title}\n\n${input.requirement.body.trim()}\n` });
+    result.push({
+      name: '40-requirement.md',
+      content: `# Requirement: ${input.requirement.title}\n\n${input.requirement.body.trim()}\n`,
+    });
   }
-  if (input.handoff?.trim()) result.push({ name: '50-handoff.md', content: `# Handoff from the previous step\n\n${input.handoff.trim()}\n` });
+  if (input.handoff?.trim())
+    result.push({
+      name: '50-handoff.md',
+      content: `# Handoff from the previous step\n\n${input.handoff.trim()}\n`,
+    });
   return result;
 }
 
 /** The files a run gets in `<worktree>/.coffe/context/`, in the order the agent should read them. */
 export function buildContextFiles(input: BundleInput): ContextFile[] {
   const measure = (candidate: BundleInput) =>
-    files(candidate).reduce((total, file) => total + Buffer.byteLength(file.name) + Buffer.byteLength(file.content), 0);
-  return files(fit(input, measure));
+    files(candidate).reduce(
+      (total, file) => total + Buffer.byteLength(file.name) + Buffer.byteLength(file.content),
+      0,
+    );
+  return files(withinCap(input, measure));
 }

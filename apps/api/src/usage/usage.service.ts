@@ -1,6 +1,14 @@
-import type { ModelPrice, PricingTable, UsageGroup, UsageQuery, UsageReport, UsageRow, UsageTotals } from '@coffe/contracts';
+import type {
+  ModelPrice,
+  PricingTable,
+  UsageGroup,
+  UsageQuery,
+  UsageReport,
+  UsageRow,
+  UsageTotals,
+} from '@coffe/contracts';
 import { Inject, Injectable } from '@nestjs/common';
-import { type SQL, eq, sql } from 'drizzle-orm';
+import { eq, type SQL, sql } from 'drizzle-orm';
 import type { Database } from '../db/client.js';
 import { DB } from '../db/db.module.js';
 import { type ModelPriceJson, workspaceSettings } from '../db/schema/index.js';
@@ -16,10 +24,19 @@ const GROUPS: Record<UsageGroup, { key: SQL; label: SQL }> = {
     key: sql`coalesce(r.ticket_id::text, 'none')`,
     label: sql`coalesce(t.key || ': ' || t.title, 'No ticket')`,
   },
-  persona: { key: sql`coalesce(r.persona_id::text, 'none')`, label: sql`coalesce(pe.name, 'No persona')` },
+  persona: {
+    key: sql`coalesce(r.persona_id::text, 'none')`,
+    label: sql`coalesce(pe.name, 'No persona')`,
+  },
   cli: { key: sql`r.cli_id`, label: sql`r.cli_id` },
-  model: { key: sql`coalesce(u.model, r.model, 'unknown')`, label: sql`coalesce(u.model, r.model, 'unknown')` },
-  member: { key: sql`coalesce(r.requested_by, 'automation')`, label: sql`coalesce(us.name, 'Automation')` },
+  model: {
+    key: sql`coalesce(u.model, r.model, 'unknown')`,
+    label: sql`coalesce(u.model, r.model, 'unknown')`,
+  },
+  member: {
+    key: sql`coalesce(r.requested_by, 'automation')`,
+    label: sql`coalesce(us.name, 'Automation')`,
+  },
   run: {
     key: sql`r.id::text`,
     label: sql`r.cli_id || ' · ' || to_char(r.created_at at time zone 'UTC', 'YYYY-MM-DD HH24:MI')`,
@@ -81,7 +98,11 @@ export function priceFor(prices: readonly ModelPrice[], model: string): ModelPri
     .toSorted((a, b) => b.model.length - a.model.length)[0];
 }
 
-function addBucket(target: UsageTotals, bucket: Bucket, prices: readonly ModelPrice[]): UsageTotals {
+function addBucket(
+  target: UsageTotals,
+  bucket: Bucket,
+  prices: readonly ModelPrice[],
+): UsageTotals {
   const price = priceFor(prices, bucket.model);
   const estimated = price
     ? (bucket.est_input * price.inputPerMTok +
@@ -151,15 +172,30 @@ export class UsageService {
     let totals = EMPTY_TOTALS;
     for (const bucket of result.rows) {
       totals = addBucket(totals, bucket, prices);
-      const current = rows.get(bucket.key) ?? { ...EMPTY_TOTALS, key: bucket.key, label: bucket.label };
-      rows.set(bucket.key, { ...addBucket(current, bucket, prices), key: bucket.key, label: bucket.label });
+      const current = rows.get(bucket.key) ?? {
+        ...EMPTY_TOTALS,
+        key: bucket.key,
+        label: bucket.label,
+      };
+      rows.set(bucket.key, {
+        ...addBucket(current, bucket, prices),
+        key: bucket.key,
+        label: bucket.label,
+      });
     }
     const ordered = [...rows.values()].toSorted((a, b) =>
       query.groupBy === 'day'
         ? a.key.localeCompare(b.key)
-        : b.reportedCostUsd + b.estimatedCostUsd - (a.reportedCostUsd + a.estimatedCostUsd) || b.totalTokens - a.totalTokens,
+        : b.reportedCostUsd + b.estimatedCostUsd - (a.reportedCostUsd + a.estimatedCostUsd) ||
+          b.totalTokens - a.totalTokens,
     );
-    return { groupBy: query.groupBy, from: query.from ?? null, to: query.to ?? null, totals, rows: ordered };
+    return {
+      groupBy: query.groupBy,
+      from: query.from ?? null,
+      to: query.to ?? null,
+      totals,
+      rows: ordered,
+    };
   }
 
   async pricing(workspaceId: string): Promise<PricingTable> {
@@ -177,7 +213,10 @@ export class UsageService {
     await this.db
       .insert(workspaceSettings)
       .values({ workspaceId, pricing })
-      .onConflictDoUpdate({ target: workspaceSettings.workspaceId, set: { pricing, updatedAt: new Date() } });
+      .onConflictDoUpdate({
+        target: workspaceSettings.workspaceId,
+        set: { pricing, updatedAt: new Date() },
+      });
     return { prices: pricing.map(toPrice) };
   }
 

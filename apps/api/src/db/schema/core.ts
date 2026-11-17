@@ -95,6 +95,7 @@ export interface ProjectSettings {
   push_on_approve?: boolean;
   remote?: string | null;
   auto_advance?: boolean;
+  require_passing_tests?: boolean;
   default_cli_id?: string | null;
   default_mode?: (typeof RUN_MODES)[number];
 }
@@ -111,7 +112,6 @@ export interface PermissionPolicyJson {
 
 export interface TicketFlags {
   failed?: boolean;
-  blocked?: boolean;
   merge_conflict?: boolean;
 }
 

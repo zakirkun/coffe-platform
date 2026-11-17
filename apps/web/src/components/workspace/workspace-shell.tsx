@@ -1,7 +1,7 @@
 'use client';
 
 import { useQueryClient } from '@tanstack/react-query';
-import { Check, ChevronsUpDown, FolderKanban, LogOut, Plus, ScrollText, Server } from 'lucide-react';
+import { BarChart3, Check, ChevronsUpDown, FolderKanban, LogOut, Plus, ScrollText, Server, UsersRound } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { type ReactNode, useEffect, useMemo } from 'react';
@@ -26,7 +26,9 @@ import { type CurrentWorkspace, WorkspaceContext } from './workspace-context';
 
 const NAVIGATION = [
   { segment: 'projects', label: 'Projects', icon: FolderKanban },
+  { segment: 'personas', label: 'Personas', icon: UsersRound },
   { segment: 'runners', label: 'Runners', icon: Server },
+  { segment: 'usage', label: 'Usage', icon: BarChart3 },
   { segment: 'audit', label: 'Audit log', icon: ScrollText },
 ] as const;
 

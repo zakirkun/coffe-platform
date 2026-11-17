@@ -65,6 +65,7 @@ export function applyRealtimeEvent(
     }
     case 'run.updated': {
       const { run } = event;
+      if (run.endedAt) void queryClient.invalidateQueries({ queryKey: queryKeys.usage(workspaceId) });
       if (!run.ticketId) return;
       queryClient.setQueryData<Run[]>(queryKeys.ticketRuns(workspaceId, run.ticketId), (runs) =>
         upsertById(runs, run),
@@ -85,6 +86,14 @@ export function applyRealtimeEvent(
       void queryClient.invalidateQueries({
         queryKey: queryKeys.review(workspaceId, event.ticketId),
       });
+      return;
+    }
+    case 'workflow.updated': {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.ticketWorkflow(workspaceId, event.ticketId) });
+      return;
+    }
+    case 'requirement.updated': {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.allRequirements(workspaceId) });
       return;
     }
     case 'run.output':
