@@ -1,0 +1,12 @@
+**/node_modules
+**/.next
+**/dist
+**/.turbo
+target
+.tools
+.git
+e2e/.tmp
+test-results
+playwright-report
+deploy/.env
+**/*.log

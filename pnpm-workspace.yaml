@@ -1,0 +1,18 @@
+packages:
+  - apps/*
+  - packages/*
+  - e2e
+
+# Versions are pinned exactly and locked; the requirement is "latest stable", several of which
+# were published within pnpm's default 24 h release-age window (docs/architecture.md §4).
+minimumReleaseAge: 0
+
+# `pnpm exec`/`pnpm run` must not trigger installs (CI=true makes them frozen and fail).
+verifyDepsBeforeRun: false
+
+allowBuilds:
+  '@biomejs/biome': true
+  '@swc/core': true
+  esbuild: true
+  sharp: true
+  unrs-resolver: true

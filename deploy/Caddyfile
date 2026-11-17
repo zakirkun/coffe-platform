@@ -1,0 +1,16 @@
+# DOMAIN: public host name (e.g. coffe.example.com, or coffe.localhost for a local install).
+# CADDY_TLS: `internal` (Caddy's local CA; trust it once) or an e-mail address for ACME.
+{$DOMAIN} {
+	tls {$CADDY_TLS}
+	encode zstd gzip
+
+	# REST, Better Auth, and the WebSocket endpoints (/api/ws, /api/runner, /api/yjs).
+	handle /api/* {
+		reverse_proxy api:4000
+	}
+
+	# Everything else is the Next.js UI.
+	handle {
+		reverse_proxy web:3000
+	}
+}

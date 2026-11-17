@@ -1,0 +1,47 @@
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.100"
+publish = false
+
+[workspace.dependencies]
+coffe-protocol = { path = "crates/coffe-protocol" }
+coffe-adapters = { path = "crates/coffe-adapters" }
+
+anyhow = "1.0.104"
+base64 = "0.23.1"
+clap = { version = "4.6.7", features = ["derive", "env"] }
+directories = "6.0.0"
+dryoc = "2.0.0"
+futures-util = { version = "0.3.34", features = ["sink"] }
+gethostname = "1.1.0"
+getrandom = { version = "0.4.3", features = ["std"] }
+portable-pty = "0.9.0"
+rustls = { version = "0.23.46", default-features = false, features = ["ring", "std", "tls12", "logging"] }
+schemars = { version = "1.2.3", features = ["uuid1"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+strip-ansi-escapes = "0.2.1"
+thiserror = "2.0.21"
+time = { version = "0.3.55", features = ["formatting", "parsing", "macros"] }
+tokio = { version = "1.54.1", features = ["full"] }
+tokio-tungstenite = { version = "0.30.0", features = ["rustls-tls-webpki-roots"] }
+toml = "1.2.1"
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter", "fmt"] }
+uuid = { version = "1.29.2", features = ["v4", "v7", "serde"] }
+which = "8.0.6"
+
+# tests
+assert_cmd = "2.2.2"
+predicates = "3.1.4"
+tempfile = "3.27.0"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true

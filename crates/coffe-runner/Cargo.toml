@@ -1,0 +1,49 @@
+[package]
+name = "coffe-runner"
+description = "COFFE runner daemon: outbound WebSocket to the control plane, CLI supervisor, git worktrees"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lib]
+name = "coffe_runner"
+path = "src/lib.rs"
+
+[[bin]]
+name = "coffe-runner"
+path = "src/main.rs"
+
+[dependencies]
+anyhow.workspace = true
+base64.workspace = true
+clap.workspace = true
+coffe-adapters.workspace = true
+coffe-protocol.workspace = true
+directories.workspace = true
+dryoc.workspace = true
+futures-util.workspace = true
+gethostname.workspace = true
+getrandom.workspace = true
+portable-pty.workspace = true
+rustls.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+time.workspace = true
+tokio.workspace = true
+tokio-tungstenite.workspace = true
+toml.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+uuid.workspace = true
+which.workspace = true
+
+[target.'cfg(unix)'.dependencies]
+nix = { version = "0.32.0", default-features = false, features = ["signal", "process"] }
+
+[dev-dependencies]
+assert_cmd.workspace = true
+predicates.workspace = true
+strip-ansi-escapes.workspace = true
+tempfile.workspace = true

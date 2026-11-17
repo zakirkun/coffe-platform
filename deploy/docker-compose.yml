@@ -1,0 +1,87 @@
+# Self-hosted COFFE: Caddy (TLS + routing) → web (Next.js UI) + api (NestJS) → PostgreSQL.
+#   cp deploy/.env.example deploy/.env   # edit DOMAIN, AUTH_SECRET, POSTGRES_PASSWORD, CADDY_TLS
+#   docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d --build
+# Runners are installed on developer machines / VMs. The optional `runner` profile runs one on
+# this host:  docker compose -f deploy/docker-compose.yml --env-file deploy/.env --profile runner up -d
+name: coffe
+
+services:
+  caddy:
+    image: caddy:2.11.9-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN}
+      CADDY_TLS: ${CADDY_TLS:-internal}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+      - api
+
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/web.Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      HOSTNAME: 0.0.0.0
+      PORT: "3000"
+
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/api.Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: "4000"
+      DATABASE_URL: postgres://coffe:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/coffe
+      PUBLIC_URL: https://${DOMAIN}
+      RUNNER_PUBLIC_URL: https://${DOMAIN}
+      TRUSTED_ORIGINS: https://${DOMAIN}
+      AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET (32+ chars)}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      RUN_MIGRATIONS: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: coffe
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: coffe
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U coffe -d coffe"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  runner:
+    profiles: ["runner"]
+    build:
+      context: ..
+      dockerfile: deploy/runner.Dockerfile
+    restart: unless-stopped
+    environment:
+      COFFE_RUNNER_HOME: /var/lib/coffe-runner
+    volumes:
+      - runner_home:/var/lib/coffe-runner
+      - ${RUNNER_REPOS_DIR:-./repos}:/repos
+      - /var/run/docker.sock:/var/run/docker.sock
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:
+  runner_home:

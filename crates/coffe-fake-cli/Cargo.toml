@@ -1,0 +1,24 @@
+[package]
+name = "coffe-fake-cli"
+description = "Fake agent CLI fixture used to test adapters, the runner and end-to-end flows"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "coffe-fake-cli"
+path = "src/main.rs"
+
+[dependencies]
+clap.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+uuid.workspace = true
+
+[dev-dependencies]
+assert_cmd.workspace = true
+coffe-adapters.workspace = true
+coffe-protocol.workspace = true
+predicates.workspace = true
+tempfile.workspace = true

@@ -1,0 +1,22 @@
+# Development database only (api and web run on the host with `pnpm dev`).
+#   docker compose -f deploy/docker-compose.dev.yml up -d
+name: coffe-dev
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: coffe
+      POSTGRES_PASSWORD: coffe
+      POSTGRES_DB: coffe
+    ports:
+      - "55432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql
+      - ./postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U coffe -d coffe"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+volumes:
+  pgdata:

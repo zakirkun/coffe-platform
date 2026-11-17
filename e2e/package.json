@@ -1,0 +1,16 @@
+{
+  "name": "@coffe/e2e",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:e2e": "playwright test -c playwright.config.ts"
+  },
+  "devDependencies": {
+    "@coffe/protocol": "workspace:*",
+    "@playwright/test": "1.65.1",
+    "@types/node": "26.6.6",
+    "pg": "8.23.1",
+    "typescript": "6.0.3"
+  }
+}

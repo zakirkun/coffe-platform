@@ -1,0 +1,29 @@
+{
+  "name": "coffe",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.21.0",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev --filter=@coffe/api --filter=@coffe/web",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "protocol:gen": "cargo run -q -p coffe-protocol --bin coffe-protocol-schema -- packages/protocol/schema/protocol.schema.json && pnpm --filter @coffe/protocol gen",
+    "protocol:check": "pnpm protocol:gen && git diff --exit-code -- packages/protocol/schema packages/protocol/src/generated.ts",
+    "db:generate": "pnpm --filter @coffe/api db:generate",
+    "db:migrate": "pnpm --filter @coffe/api db:migrate",
+    "test:e2e": "pnpm --filter @coffe/e2e test:e2e"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.6.8",
+    "@playwright/test": "1.65.1",
+    "@types/node": "26.6.6",
+    "turbo": "2.11.11",
+    "typescript": "6.0.3"
+  }
+}
