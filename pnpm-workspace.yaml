@@ -16,3 +16,10 @@ allowBuilds:
   esbuild: true
   sharp: true
   unrs-resolver: true
+
+# Security patches for transitive dependencies (GitHub Dependabot alerts):
+# - dompurify < 3.4.17 (bundled by monaco-editor 0.57.0): SAFE_FOR_TEMPLATES / IN_PLACE bypasses.
+# - esbuild < 0.25.0 (drizzle-kit's @esbuild-kit loader, dev only): dev-server request forgery.
+overrides:
+  dompurify: 3.4.17
+  '@esbuild-kit/core-utils>esbuild': 0.25.12
